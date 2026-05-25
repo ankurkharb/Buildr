@@ -66,7 +66,7 @@ npx prisma db push
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to start building.
+Open https://rookierao-buildr-app.hf.space/ to start building.
 
 ### Environment Variables
 
