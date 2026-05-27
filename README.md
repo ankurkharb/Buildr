@@ -1,3 +1,12 @@
+---
+title: Buildr App
+emoji: 🚀
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 7860
+---
+
 # Buildr
 
 <img width="41" height="40" alt="image" src="https://github.com/user-attachments/assets/099bec03-1d2f-4f4e-901a-1c8119f7921d" />

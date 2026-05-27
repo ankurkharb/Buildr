@@ -23,6 +23,14 @@ RUN npx prisma generate
 # Next.js telemetry
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# Provide NEXT_PUBLIC_ variables at build time for static prerendering
+ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_ZXZpZGVudC1sb2N1c3QtMTIuY2xlcmsuYWNjb3VudHMuZGV2JA"
+ENV NEXT_PUBLIC_CLERK_SIGN_IN_URL="/sign-in"
+ENV NEXT_PUBLIC_CLERK_SIGN_UP_URL="/sign-up"
+ENV NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL="/"
+ENV NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL="/"
+ENV NEXT_PUBLIC_APP_URL="https://rookierao-buildr-app.hf.space"
+
 RUN npm run build
 
 # Production image, copy all the files and run next
@@ -48,9 +56,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 USER nextjs
 
-EXPOSE 3000
+EXPOSE 7860
 
-ENV PORT=3000
+ENV PORT=7860
 ENV HOSTNAME="0.0.0.0"
 
 # server.js is created by next build from the standalone output
