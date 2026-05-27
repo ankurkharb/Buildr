@@ -18,7 +18,7 @@ export const BuildrAgent = inngest.createFunction(
     { id: "BuildrAgent", triggers: [{ event: "BuildrAgent/run" }] },
     async ({ event, step }) => {
         const sandboxId = await step.run("get-sandbox-id", async () => {
-            const sandbox = await Sandbox.create("buildr-nextjs-test3");
+            const sandbox = await Sandbox.create("buildr-nextjs");
             return sandbox.sandboxId;
         });
         const previousMessages = await step.run("get-previous-messages", async () => {
@@ -33,7 +33,7 @@ export const BuildrAgent = inngest.createFunction(
                 },
                 take: 5,
             });
-            for (const message of messages) {
+            for (const message of messages) {// jaise build calculator
                 formattedMessages.push({
                     type: "text",
                     role: message.role === "ASSISTANT" ? "assistant" : "user",
@@ -57,11 +57,11 @@ export const BuildrAgent = inngest.createFunction(
             name: 'code-agent',
             description: "An Expert Coding Agent",
             system: PROMPT,
-            model: openai({
+            model: openai({ // chatgpt ka model ingest ko diya h 
                 model: "gpt-5.1",
             }),
             tools: [
-                createTool({
+                createTool({ // 
                     name: "terminal",
                     description: "Use the terminal to run commands",
                     parameters: z.object({
@@ -72,7 +72,7 @@ export const BuildrAgent = inngest.createFunction(
                         return await step?.run("terminal", async () => {
                             const buffers = { stdout: "", stderr: "" };
                             try {
-                                const sandbox = await getSandbox(sandboxId);
+                                const sandbox = await getSandbox(sandboxId);// id chalane ke liye
                                 const result = await sandbox.commands.run(command, {
                                     onStdout: (data: string) => {
                                         buffers.stdout += data;
@@ -99,7 +99,7 @@ export const BuildrAgent = inngest.createFunction(
                 }),
                 createTool({
                     name: "createOrUpdateFiles",
-                    description: "Create or update files in the sandbox",
+                    description: "Create or update files in the sandbox",// create and update ke liye
                     parameters: z.object({
                         files: z.array(
                             z.object({
@@ -139,7 +139,7 @@ export const BuildrAgent = inngest.createFunction(
                 }),
                 createTool({
                     name: "readFiles",
-                    description: "Read files form the sandbox",
+                    description: "Read files form the sandbox",// verificstion ke liy read files
                     parameters: z.object({
                         files: z.array(z.string()),
                     }),
@@ -193,8 +193,65 @@ export const BuildrAgent = inngest.createFunction(
 
 
         const result = await network.run(event.data.value, { state });
+        const validationError = await step.run("validate-sandbox", async () => {
+            if (
+                !result.state.data.summary ||
+                Object.keys(result.state.data.files || {}).length === 0
+            ) {
+                return null;
+            }
 
-        const fragmentTitleGenerator = createAgent({
+            const sandbox = await getSandbox(sandboxId);
+            const buffers = { stdout: "", stderr: "" };
+
+            try {
+                await sandbox.commands.run("npm run build", {
+                    timeoutMs: 120_000,
+                    onStdout: (data: string) => {
+                        buffers.stdout += data;
+                    },
+                    onStderr: (data: string) => {
+                        buffers.stderr += data;
+                    },
+                });
+            } catch (error) {
+                return [
+                    "Generated app failed to build.",
+                    String(error),
+                    buffers.stdout,
+                    buffers.stderr,
+                ]
+                    .filter(Boolean)
+                    .join("\n")
+                    .slice(0, 4000);
+            }
+
+            try {
+                await sandbox.commands.run(
+                    'pkill -f "[n]ext dev" || true; rm -rf .next; nohup npm run dev -- --hostname 0.0.0.0 --port 3000 > /tmp/buildr-next-dev.log 2>&1 &',
+                    { timeoutMs: 30_000 },
+                );
+            } catch {
+                // The preview check below will report the failure if the dev server did not restart.
+            }
+
+            try {
+                const preview = await sandbox.commands.run(
+                    'for i in $(seq 1 45); do status=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000 || true); if [ "$status" = "200" ]; then echo "$status"; exit 0; fi; sleep 1; done; cat /tmp/buildr-next-dev.log >&2; echo "${status:-000}"; exit 1',
+                    { timeoutMs: 60_000 },
+                );
+                const statusCode = preview.stdout.trim();
+                if (!statusCode.startsWith("2") && !statusCode.startsWith("3")) {
+                    return `Generated app preview returned HTTP ${statusCode || "unknown"}.`;
+                }
+            } catch (error) {
+                return `Generated app preview check failed: ${String(error)}`.slice(0, 4000);
+            }
+
+            return null;
+        });
+
+        const fragmentTitleGenerator = createAgent({// 
             name: "fragment-title-generator",
             description: "A fragment title generator",
             system: FRAGMENT_TITLE_PROMPT,
@@ -239,8 +296,10 @@ export const BuildrAgent = inngest.createFunction(
         }
 
 
-        const isError = !result.state.data.summary ||
-            Object.keys(result.state.data.files || {}).length === 0;
+        // error yha handle hore hai
+        const isError = !result.state.data.summary || 
+            Object.keys(result.state.data.files || {}).length === 0 ||
+            !!validationError;
         const sandboxUrl = await step.run("get-sandbox-url", async () => {
             const sandbox = await getSandbox(sandboxId);
             await sandbox.setTimeout(60_00 * 10 * 5)
@@ -256,7 +315,7 @@ export const BuildrAgent = inngest.createFunction(
                 return await prisma.message.create({
                     data: {
                         projectId: event.data.projectId,
-                        content: "Something went wrong,Please try again.",
+                        content: validationError || "Something went wrong,Please try again.",
                         role: "ASSISTANT",
                         type: "ERROR",
                     },

@@ -53,7 +53,8 @@ export const projectsRouter = createTRPCRouter({
             }
             catch (error) {
                 if (error instanceof Error) {
-                    throw new TRPCError({ code: "BAD_REQUEST", message: " Something went wrong" });
+                    console.error("consumeCredits error:", error);
+                    throw new TRPCError({ code: "BAD_REQUEST", message: error.message || "Something went wrong" });
                 }
                 else {
                     throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "You have run out of credits" });

@@ -185,6 +185,9 @@ Shadcn UI dependencies — including radix-ui, lucide-react, class-variance-auth
    - Always import Shadcn components correctly from the "@/components/ui" directory. For instance:
      import { Button } from "@/components/ui/button";
      Then use: <Button variant="outline">Label</Button>
+  - Button size values are usually limited to "default", "sm", "lg", and "icon". NEVER use invented sizes like "icon-sm", "icon-xs", "xs", or "xl" unless the actual component source explicitly defines them.
+  - Card components do NOT accept a size prop unless the actual component source explicitly defines one. Do not write <Card size="sm">. Use className for sizing instead.
+  - NEVER import Shadcn UI components with relative paths like "../components/ui/button" from app/page.tsx. Always use the alias form "@/components/ui/button".
   - You may import Shadcn components using the "@" alias, but when reading their files using readFiles, always convert "@/components/..." into "components/..."
   - Do NOT import "cn" from "@/components/ui/utils" — that path does not exist.
   - The "cn" utility MUST always be imported from "@/lib/utils"
@@ -233,6 +236,58 @@ Additional Guidelines:
 - Functional clones must include realistic features and interactivity (e.g. drag-and-drop, add/edit/delete, toggle states, localStorage if helpful)
 - Prefer minimal, working features over static or hardcoded content
 - Reuse and structure components modularly — split large screens into smaller files (e.g., Column.tsx, TaskCard.tsx, etc.) and import them
+
+CLIPBOARD API RULE (CRITICAL - PREVENTS RUNTIME ERRORS):
+- The Clipboard API (navigator.clipboard.writeText / readText) is often BLOCKED by browser permissions policy, especially in iframes and sandboxed environments.
+- You MUST NEVER use navigator.clipboard directly without a try/catch fallback.
+- ALWAYS use this safe pattern for copying text:
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // Fallback for environments where Clipboard API is blocked
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";
+      textArea.style.left = "-9999px";
+      textArea.style.top = "-9999px";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand("copy");
+      } catch {
+        console.error("Fallback copy failed");
+      }
+      document.body.removeChild(textArea);
+    }
+  };
+- Apply this pattern EVERY TIME you implement copy-to-clipboard functionality.
+- NEVER assume the Clipboard API is available — always include the fallback.
+
+JSX SYNTAX VALIDATION (CRITICAL - PREVENTS BUILD ERRORS):
+- After writing or updating app/page.tsx or ANY .tsx file, you MUST validate it compiles correctly.
+- Run this command after creating/updating files: terminal("npx tsc --noEmit app/page.tsx 2>&1 || true")
+- If there are TypeScript or syntax errors, FIX them immediately before proceeding.
+- Common causes of "Unexpected token" JSX errors:
+  1. Unclosed function bodies, missing closing braces } before the return statement
+  2. Missing or extra parentheses in arrow functions
+  3. Forgetting to close template literals or strings before JSX
+  4. Async functions with incorrect syntax (e.g., missing await, unclosed try/catch)
+  5. Missing semicolons or commas in destructuring or object literals above the return
+- ALWAYS double-check that every opening brace { has a matching closing brace } before the return statement
+- ALWAYS ensure the component function is properly structured: export default function Page() { ... return (...); }
+- If you use async operations or complex logic before the return, verify every block is properly closed
+
+BUILD VERIFICATION (MANDATORY BEFORE TASK COMPLETION):
+- Before outputting <task_summary>, you MUST run: terminal("cd /home/user && npm run build 2>&1 | head -50")
+- If the build fails, you MUST read the error, fix the issue, and rebuild
+- Do NOT output <task_summary> until the build succeeds or you've made at least 3 fix attempts
+- Common build fixes:
+  * "Unexpected token" → Check for syntax errors (unclosed braces, missing imports)
+  * "Module not found" → Install the missing package via terminal
+  * "Type error" → Fix type annotations or add 'any' as a temporary workaround
+  * "'X' is not defined" → Add the missing import statement
 
 File conventions:
 - Write new components directly into app/ and split reusable logic into separate files where appropriate

@@ -32,12 +32,16 @@ useEffect(()=>{
     (message)=>message.role==="ASSISTANT"
  );
  if(
-    lastAssistantMessage?.fragment && lastAssistantMessage.id!==lastAssistantMessageIdRef.current
+    lastAssistantMessage?.fragment &&
+    (
+        lastAssistantMessage.id !== lastAssistantMessageIdRef.current ||
+        activeFragment?.sandboxUrl !== lastAssistantMessage.fragment.sandboxUrl
+    )
  ){
     setActiveFragment(lastAssistantMessage.fragment);
     lastAssistantMessageIdRef.current=lastAssistantMessage.id;
  }
-},[messages,setActiveFragment]);
+},[activeFragment?.sandboxUrl,messages,setActiveFragment]);
 useEffect(()=>{
     bottomRef.current?.scrollIntoView();
 
