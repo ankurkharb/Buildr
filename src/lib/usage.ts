@@ -9,11 +9,11 @@ const parsePositiveInt = (value: string | undefined, fallback: number) => {
 
 const FREE_POINTS = parsePositiveInt(
     process.env.FREE_USAGE_POINTS,
-    process.env.NODE_ENV === "production" ? 3 : 100,
+    process.env.NODE_ENV === "production" ? 100 : 100,
 );
 const PRO_POINTS = parsePositiveInt(
     process.env.PRO_USAGE_POINTS,
-    process.env.NODE_ENV === "production" ? 7 : 500,
+    process.env.NODE_ENV === "production" ? 500 : 500,
 );
 const DURATION = 30 * 24 * 60 * 60;//30 days
 const GENERATION_COST = 1;
