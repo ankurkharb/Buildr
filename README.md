@@ -88,7 +88,7 @@ Buildr/
     ```
 
 4. **Open in your browser**:  
-   Visit `http://localhost:3000` or [buildr-delta.vercel.app](https://buildr-delta.vercel.app/) to start building with AI.
+   Visit `http://localhost:3000` or [buildr-delta.vercel.app](https://buildr-theta.vercel.app/) to start building with AI.
 
 ## Environment Variables
 
